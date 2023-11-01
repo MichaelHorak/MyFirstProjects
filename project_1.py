@@ -3,6 +3,7 @@ import sqlite3
 from random import shuffle
 import random
 
+DATABASE_FILE = "./music.db"
 artist_ids = []
 
 genres = ['Rock', 'Pop', 'Hip-Hop/Rap', 'Country', 'Nu Metal', 'Arabic Pop', 'Jazz']
@@ -57,7 +58,7 @@ class Question:
         self.date = ""
 
     def get_line_from_db(self):
-        con = sqlite3.connect("music.db")
+        con = connect_database()
         cur = con.cursor()
         cur.execute('SELECT * FROM songdata ORDER BY RANDOM() LIMIT 1')
         # res = cur.execute("SELECT * FROM songdata ORDER BY RANDOM() LIMIT 1")
@@ -118,6 +119,10 @@ def main():
     delete_db_table()
 
 
+def connect_database():
+    return sqlite3.connect(DATABASE_FILE)
+
+
 def introduction():
     print("MUSIC QUIZ")
     print("Select genre:")
@@ -167,7 +172,7 @@ def generate_data(selected_genre, genre_choice):
                 # Check if any unwanted pattern is in album
                 if not has_unwanted_pattern(album) and artist in genres[(int(genre_choice) - 1)]:
                     try:
-                        con = sqlite3.connect("../music.db")
+                        con = connect_database()
                         cur = con.cursor()
                         cur.execute("CREATE TABLE IF NOT EXISTS songdata(artist TEXT, album TEXT, song TEXT, date INTEGER)")
                         # insert data into the database
@@ -200,7 +205,7 @@ def has_unwanted_pattern(album):
 
 
 def delete_db_table():
-    con = sqlite3.connect("../music.db")
+    con = connect_database()
     cur = con.cursor()
     cur.execute("DROP TABLE IF EXISTS songdata")
     con.commit()
