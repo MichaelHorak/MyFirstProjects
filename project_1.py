@@ -45,68 +45,45 @@ artists_by_genre = {
 }
 
 
-class Question:
-    def __init__(self):
-        self.answer_pool = ""
-        self.correct_answer = ""
-        self.key_data = ""
-        self.result = 0
-        self.artist = ""
-        self.album = ""
-        self.song = ""
-        self.date = ""
-
-    def get_line_from_db(self):
-        with connect_database() as con:
-            cur = con.execute('SELECT artist, album, song, date FROM songdata ORDER BY RANDOM() LIMIT 1')
-            results = cur.fetchall()
-        # format result data
-        for result in results:
-            self.key_data = list(result)
-        artist, album, song, date = self.key_data
-        return artist, album, song, date
-
-    def answers_input(self):
-        answer = prompt_from_options(self.answer_pool)
-        if answer == self.correct_answer:
-            self.result = 1
-            print(f"Answer {self.correct_answer} is correct.")
+def get_random_songs(count: int, genre=None) -> list:
+    with connect_database() as con:
+        if genre:
+            cur = con.execute(
+                'SELECT artist, album, song, date FROM songdata WHERE genre=? ORDER BY RANDOM() LIMIT ?',
+                (genre, count),
+            )
         else:
-            print(f"Wrong, the correct answer is {self.correct_answer}.")
-            self.result = 0
-        return self.result
+            cur = con.execute(
+                'SELECT artist, album, song, date FROM songdata ORDER BY RANDOM() LIMIT ?',
+                (count,),
+            )
+        return list(cur.fetchall())
 
 
-class Question1(Question):
-    def __init__(self):
-        super().__init__()
-        self.artist, self.album, self.song, self.date = super().get_line_from_db()
-        # save the correct answer
-        self.correct_answer = self.artist
-        self.answer_pool = [self.correct_answer]
-        # gather other options
-        while len(self.answer_pool) < 4:
-            self.artist2, self.album2, self.song2, self.date2 = super().get_line_from_db()
-            # check for duplicate data
-            if self.artist2 not in self.answer_pool:
-                if self.artist2 != self.correct_answer:
-                    self.answer_pool.append(self.artist2)
-        # shuffle answers
-        random.shuffle(self.answer_pool)
-
-    def __str__(self):
-        return f"{self.correct_answer}\nWho is the artist of the song {self.song} on the album " \
-               f"{self.album} from {self.date}?"
+def ask_question(selected_genre: str) -> int:
+    songs = get_random_songs(4, genre=selected_genre)
+    correct = songs[0]
+    random.shuffle(songs)
+    correct_artist, correct_album, correct_song, correct_date = correct
+    print(f"Who is the artist of the song {correct_song} on the album {correct_album} from {correct_date}?")
+    artists = sorted(set(song[0] for song in songs))
+    answer = prompt_from_options(artists)
+    if answer == correct_artist:
+        print(f"Answer {correct_artist} is correct.")
+        return 1
+    else:
+        print(f"Wrong, the correct answer is {correct_artist}.")
+        return 0
 
 
 def main():
     selected_genre = introduction()
     with requests.Session() as sess:
         generate_data(sess, selected_genre)
-    q1 = Question1()
-    print(q1)
-    q1.answers_input()
-    # generate_questions()
+    score = 0
+    for x in range(5):
+        score += ask_question(selected_genre)
+    print(f"Your score is {score}/5")
 
 
 def connect_database():
