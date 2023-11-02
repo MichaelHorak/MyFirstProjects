@@ -106,7 +106,8 @@ class Question1(Question):
 
 def main():
     selected_genre = introduction()
-    generate_data(selected_genre)
+    with requests.Session() as sess:
+        generate_data(sess, selected_genre)
     q1 = Question1()
     print(q1)
     q1.answers_input()
@@ -138,11 +139,12 @@ def prompt_from_options(options) -> str:
             print(f"Enter a number between 1 and {len(options)}")
 
 
-def generate_data(selected_genre):
+def generate_data(sess: requests.Session, selected_genre):
     print("Gathering data...\n")
     selected_artists = artists_by_genre[selected_genre]
     for artist in selected_artists:
-        response = requests.get("https://itunes.apple.com/search?entity=musicArtist&term=" + artist)
+        response = sess.get("https://itunes.apple.com/search?entity=musicArtist&term=" + artist)
+        response.raise_for_status()
         o = response.json()
         result = o["results"]
         artist_id = result[0]['artistId']
@@ -151,7 +153,8 @@ def generate_data(selected_genre):
     # send a request to itunes to return artist's songs
     for artist in artist_ids:
         str_artist = str(artist)
-        response = requests.get("https://itunes.apple.com/lookup?id=" + str_artist + "&entity=song")
+        response = sess.get("https://itunes.apple.com/lookup?id=" + str_artist + "&entity=song")
+        response.raise_for_status()
         # print(json.dumps(response.json(), indent=2))
 
         o = response.json()
