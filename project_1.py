@@ -112,7 +112,6 @@ def main():
     print(q1)
     q1.answers_input()
     # generate_questions()
-    delete_db_table()
 
 
 def connect_database():
@@ -202,13 +201,6 @@ def has_unwanted_pattern(album):
     ]
     return any(pattern in album.lower() for pattern in unwanted_patterns)
 
-
-def delete_db_table():
-    con = connect_database()
-    cur = con.cursor()
-    cur.execute("DROP TABLE IF EXISTS songdata")
-    con.commit()
-    con.close()
 
 
 if __name__ == "__main__":
