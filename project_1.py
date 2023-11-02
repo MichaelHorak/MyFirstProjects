@@ -146,6 +146,11 @@ def generate_data(sess: requests.Session, selected_genre):
     with connect_database() as con:
         con.execute("CREATE TABLE IF NOT EXISTS songdata(artist TEXT, album TEXT, song TEXT, date INTEGER)")
         for artist_name, artist_id in artist_name_to_artist_id.items():
+            res = con.execute("SELECT COUNT(*) FROM songdata WHERE artist=?", (artist_name,))
+            count, = res.fetchone()
+            if count > 0:
+                print(f"Skipping {artist_name} because we already have {count} songs by them")
+                continue
             response = sess.get(f"https://itunes.apple.com/lookup?id={artist_id}&entity=song")
             response.raise_for_status()
             # print(json.dumps(response.json(), indent=2))
