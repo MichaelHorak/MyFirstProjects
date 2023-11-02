@@ -140,19 +140,11 @@ def prompt_from_options(options) -> str:
 def generate_data(sess: requests.Session, selected_genre):
     print("Gathering data...\n")
     selected_artists = artists_by_genre[selected_genre]
-    artist_ids = []
-    for artist in selected_artists:
-        response = sess.get("https://itunes.apple.com/search?entity=musicArtist&term=" + artist)
-        response.raise_for_status()
-        o = response.json()
-        result = o["results"]
-        artist_id = result[0]['artistId']
-        artist_ids.append(artist_id)
+    artist_name_to_artist_id = dict(get_artist_ids(sess, selected_artists))
 
     # send a request to itunes to return artist's songs
-    for artist in artist_ids:
-        str_artist = str(artist)
-        response = sess.get("https://itunes.apple.com/lookup?id=" + str_artist + "&entity=song")
+    for artist_name, artist_id in artist_name_to_artist_id.items():
+        response = sess.get(f"https://itunes.apple.com/lookup?id={artist_id}&entity=song")
         response.raise_for_status()
         # print(json.dumps(response.json(), indent=2))
 
@@ -184,6 +176,16 @@ def generate_data(sess: requests.Session, selected_genre):
             except KeyError:
                 # skips result if it does not include date
                 continue
+
+
+def get_artist_ids(sess, selected_artists):
+    for artist in selected_artists:
+        response = sess.get("https://itunes.apple.com/search?entity=musicArtist&term=" + artist)
+        response.raise_for_status()
+        o = response.json()
+        result = o["results"]
+        artist_id = result[0]['artistId']
+        yield (artist, artist_id)
 
 
 def has_unwanted_pattern(album):
