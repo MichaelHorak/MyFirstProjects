@@ -57,13 +57,9 @@ class Question:
         self.date = ""
 
     def get_line_from_db(self):
-        con = connect_database()
-        cur = con.cursor()
-        cur.execute('SELECT * FROM songdata ORDER BY RANDOM() LIMIT 1')
-        # res = cur.execute("SELECT * FROM songdata ORDER BY RANDOM() LIMIT 1")
-        results = cur.fetchall()
-        con.commit()
-        con.close()
+        with connect_database() as con:
+            cur = con.execute('SELECT artist, album, song, date FROM songdata ORDER BY RANDOM() LIMIT 1')
+            results = cur.fetchall()
         # format result data
         for result in results:
             self.key_data = list(result)
@@ -137,14 +133,14 @@ def prompt_from_options(options) -> str:
             print(f"Enter a number between 1 and {len(options)}")
 
 
-def generate_data(sess: requests.Session, selected_genre):
+def generate_data(sess: requests.Session, genre: str):
     print("Gathering data...\n")
-    selected_artists = artists_by_genre[selected_genre]
+    selected_artists = artists_by_genre[genre]
     artist_name_to_artist_id = dict(get_artist_ids(sess, selected_artists))
 
     # send a request to itunes to return artist's songs
     with connect_database() as con:
-        con.execute("CREATE TABLE IF NOT EXISTS songdata(artist TEXT, album TEXT, song TEXT, date INTEGER)")
+        con.execute("CREATE TABLE IF NOT EXISTS songdata(artist TEXT, album TEXT, song TEXT, date INTEGER, genre TEXT)")
         for artist_name, artist_id in artist_name_to_artist_id.items():
             res = con.execute("SELECT COUNT(*) FROM songdata WHERE artist=?", (artist_name,))
             count, = res.fetchone()
@@ -169,7 +165,10 @@ def generate_data(sess: requests.Session, selected_genre):
                 # Filter out albums we don't want in db
                 # Check if any unwanted pattern is in album
                 if not has_unwanted_pattern(album) and artist in selected_artists:
-                    con.execute("INSERT INTO songdata VALUES(?, ?, ?, ?)", (artist, album, song, date))
+                    con.execute(
+                        "INSERT INTO songdata VALUES(?, ?, ?, ?, ?)",
+                        (artist, album, song, date, genre),
+                    )
                     con.commit()
 
 
