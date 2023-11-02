@@ -72,13 +72,8 @@ class Question:
         return artist, album, song, date
 
     def answers_input(self):
-        # print(self.correct_answer)
-        for i in range(len(self.answer_pool)):
-            print(f"{i + 1} {self.answer_pool[i]}")
-        # user's input
-        answer = input("Enter the number of your answer and press <enter>: ")
-        # if user's input is correct, add a point
-        if self.answer_pool[int(answer) - 1] == self.correct_answer:
+        answer = prompt_from_options(self.answer_pool)
+        if answer == self.correct_answer:
             self.result = 1
             print(f"Answer {self.correct_answer} is correct.")
         else:
@@ -110,8 +105,8 @@ class Question1(Question):
 
 
 def main():
-    selected_genre, genre_choice = introduction()
-    generate_data(selected_genre, genre_choice)
+    selected_genre = introduction()
+    generate_data(selected_genre)
     q1 = Question1()
     print(q1)
     q1.answers_input()
@@ -126,23 +121,24 @@ def connect_database():
 def introduction():
     print("MUSIC QUIZ")
     print("Select genre:")
-    for i, genre in enumerate(genres):
-        print(i + 1, genre)
+    return prompt_from_options(genres)
 
-    # get user selected genre
+
+def prompt_from_options(options) -> str:
+    for i, option in enumerate(options, 1):
+        print(i, option)
     while True:
         try:
-            genre_choice = int(input("Enter the genre number and press <enter>: "))
-            if genre_choice in range(1, len(genres) + 1):
-                selected_genre = genres[(int(genre_choice) - 1)]
-                print(f"You selected {selected_genre}")
-                return selected_genre, genre_choice
+            choice = int(input("Enter a number and press <enter>: "))
+            if choice in range(1, len(options) + 1):
+                selection = options[(int(choice) - 1)]
+                print(f"You selected {selection}")
+                return selection
         except ValueError:
-            print(f"Enter a number between 1 and {len(genres)}")
-            pass
+            print(f"Enter a number between 1 and {len(options)}")
 
 
-def generate_data(selected_genre, genre_choice):
+def generate_data(selected_genre):
     print("Gathering data...\n")
     selected_artists = artists_by_genre[selected_genre]
     for artist in selected_artists:
@@ -170,7 +166,7 @@ def generate_data(selected_genre, genre_choice):
                 date = date[:4]
                 # Filter out albums we don't want in db
                 # Check if any unwanted pattern is in album
-                if not has_unwanted_pattern(album) and artist in genres[(int(genre_choice) - 1)]:
+                if not has_unwanted_pattern(album) and artist in selected_artists:
                     try:
                         con = connect_database()
                         cur = con.cursor()
