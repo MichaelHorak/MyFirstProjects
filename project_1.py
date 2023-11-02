@@ -4,7 +4,6 @@ import sqlite3
 import requests
 
 DATABASE_FILE = "./music.db"
-artist_ids = []
 
 genres = ['Rock', 'Pop', 'Hip-Hop/Rap', 'Country', 'Nu Metal', 'Arabic Pop', 'Jazz']
 artists_by_genre = {
@@ -141,6 +140,7 @@ def prompt_from_options(options) -> str:
 def generate_data(sess: requests.Session, selected_genre):
     print("Gathering data...\n")
     selected_artists = artists_by_genre[selected_genre]
+    artist_ids = []
     for artist in selected_artists:
         response = sess.get("https://itunes.apple.com/search?entity=musicArtist&term=" + artist)
         response.raise_for_status()
