@@ -143,33 +143,29 @@ def generate_data(sess: requests.Session, selected_genre):
     artist_name_to_artist_id = dict(get_artist_ids(sess, selected_artists))
 
     # send a request to itunes to return artist's songs
-    for artist_name, artist_id in artist_name_to_artist_id.items():
-        response = sess.get(f"https://itunes.apple.com/lookup?id={artist_id}&entity=song")
-        response.raise_for_status()
-        # print(json.dumps(response.json(), indent=2))
+    with connect_database() as con:
+        con.execute("CREATE TABLE IF NOT EXISTS songdata(artist TEXT, album TEXT, song TEXT, date INTEGER)")
+        for artist_name, artist_id in artist_name_to_artist_id.items():
+            response = sess.get(f"https://itunes.apple.com/lookup?id={artist_id}&entity=song")
+            response.raise_for_status()
+            # print(json.dumps(response.json(), indent=2))
 
-        o = response.json()
-        del o["results"][0]
-        for result in o["results"]:
-            date = result.get("releaseDate")
-            if not date:
-                continue
-            # vars to save in the database
-            artist = result["artistName"]
-            album = result["collectionName"]
-            song = result["trackName"]
-            date = date[:4]
-            # Filter out albums we don't want in db
-            # Check if any unwanted pattern is in album
-            if not has_unwanted_pattern(album) and artist in selected_artists:
-                con = connect_database()
-                cur = con.cursor()
-                cur.execute("CREATE TABLE IF NOT EXISTS songdata(artist TEXT, album TEXT, song TEXT, date INTEGER)")
-                # insert data into the database
-                cur.execute("INSERT INTO songdata VALUES(?, ?, ?, ?)",
-                            (artist, album, song, date))
-                con.commit()
-                con.close()
+            o = response.json()
+            del o["results"][0]
+            for result in o["results"]:
+                date = result.get("releaseDate")
+                if not date:
+                    continue
+                # vars to save in the database
+                artist = result["artistName"]
+                album = result["collectionName"]
+                song = result["trackName"]
+                date = date[:4]
+                # Filter out albums we don't want in db
+                # Check if any unwanted pattern is in album
+                if not has_unwanted_pattern(album) and artist in selected_artists:
+                    con.execute("INSERT INTO songdata VALUES(?, ?, ?, ?)", (artist, album, song, date))
+                    con.commit()
 
 
 def get_artist_ids(sess, selected_artists):
