@@ -151,31 +151,25 @@ def generate_data(sess: requests.Session, selected_genre):
         o = response.json()
         del o["results"][0]
         for result in o["results"]:
-            try:
-                date = result["releaseDate"]
-                # vars to save in the database
-                artist = result["artistName"]
-                album = result["collectionName"]
-                song = result["trackName"]
-                date = date[:4]
-                # Filter out albums we don't want in db
-                # Check if any unwanted pattern is in album
-                if not has_unwanted_pattern(album) and artist in selected_artists:
-                    try:
-                        con = connect_database()
-                        cur = con.cursor()
-                        cur.execute("CREATE TABLE IF NOT EXISTS songdata(artist TEXT, album TEXT, song TEXT, date INTEGER)")
-                        # insert data into the database
-                        cur.execute("INSERT INTO songdata VALUES(?, ?, ?, ?)",
-                                    (artist, album, song, date))
-                        con.commit()
-                        con.close()
-                    except Exception as e:
-                        print(f"Error occurred: {e}")
-
-            except KeyError:
-                # skips result if it does not include date
+            date = result.get("releaseDate")
+            if not date:
                 continue
+            # vars to save in the database
+            artist = result["artistName"]
+            album = result["collectionName"]
+            song = result["trackName"]
+            date = date[:4]
+            # Filter out albums we don't want in db
+            # Check if any unwanted pattern is in album
+            if not has_unwanted_pattern(album) and artist in selected_artists:
+                con = connect_database()
+                cur = con.cursor()
+                cur.execute("CREATE TABLE IF NOT EXISTS songdata(artist TEXT, album TEXT, song TEXT, date INTEGER)")
+                # insert data into the database
+                cur.execute("INSERT INTO songdata VALUES(?, ?, ?, ?)",
+                            (artist, album, song, date))
+                con.commit()
+                con.close()
 
 
 def get_artist_ids(sess, selected_artists):
