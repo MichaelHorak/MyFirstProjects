@@ -5,7 +5,6 @@ import requests
 
 DATABASE_FILE = "./music.db"
 
-genres = ['Rock', 'Pop', 'Hip-Hop/Rap', 'Country', 'Nu Metal', 'Arabic Pop', 'Jazz']
 artists_by_genre = {
     'Rock': [
         'The Beatles', 'Led Zeppelin', 'Queen', 'Rolling Stones', 'Pink Floyd',
@@ -43,6 +42,7 @@ artists_by_genre = {
         'Sarah Vaughan', 'Art Blakey', 'Count Basie', 'Dizzy Gillespie', 'Stan Getz'
     ]
 }
+genres = list(artists_by_genre)
 
 
 def get_random_songs(count: int, genre=None) -> list:
