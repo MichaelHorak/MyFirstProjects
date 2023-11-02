@@ -1,7 +1,7 @@
-import requests
-import sqlite3
-from random import shuffle
 import random
+import sqlite3
+
+import requests
 
 DATABASE_FILE = "./music.db"
 artist_ids = []
