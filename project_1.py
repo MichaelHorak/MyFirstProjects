@@ -61,7 +61,10 @@ def get_random_songs(count: int, genre=None) -> list:
 
 
 def ask_question(selected_genre: str) -> int:
-    songs = get_random_songs(4, genre=selected_genre)
+    songs = [
+        *get_random_songs(2, genre=selected_genre),  # two songs from the selected genre
+        *get_random_songs(2, genre=None),  # ... and two songs from any genre known
+    ]
     correct = songs[0]
     random.shuffle(songs)
     correct_artist, correct_album, correct_song, correct_date = correct
