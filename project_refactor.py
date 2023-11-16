@@ -46,25 +46,24 @@ genres = list(artists_by_genre)
 
 
 class Question:
-    def __init__(self, genre):
-        self.answer_pool = []
-        self.correct_answer = ""
-        self.genre = genre
+   def __init__(self, genre):
+       self.answer_pool = []
+       self.correct_answer = ""
+       self.genre = genre
 
-    def get_line_from_db(self):
-        with connect_database() as con:
-            cur = con.execute(
-                'SELECT artist, album, song, date FROM songdata WHERE genre=? ORDER BY RANDOM() LIMIT 1',
-                (self.genre,)
-            )
-            results = cur.fetchall()
-            # format result data
-            for result in results:
-                key_data = list(result)
-            artist_name, collection_name, track_name, date = key_data
-            return artist_name, collection_name, track_name, date
+   def get_line_from_db(self):
+       with connect_database() as con:
+           min_id = con.execute("SELECT MIN(id) FROM songdata WHERE genre=?", (self.genre,)).fetchone()[0]
+           max_id = con.execute("SELECT MAX(id) FROM songdata WHERE genre=?", (self.genre,)).fetchone()[0]
+           random_id = random.randint(min_id, max_id)
+           cur = con.execute("SELECT artist, album, song, date FROM songdata WHERE id=?", (random_id,))
+           results = cur.fetchall()
+           for result in results:
+               key_data = list(result)
+           artist_name, collection_name, track_name, date = key_data
+           return artist_name, collection_name, track_name, date
 
-    def answers_input(self, score):
+   def answers_input(self, score):
         print(self.correct_answer)
         for i in range(len(self.answer_pool)):
             print(f"{i + 1} {self.answer_pool[i]}")
@@ -92,23 +91,23 @@ class Question:
 
 
 class Question1(Question):
-    def __init__(self, genre):
-        super().__init__(genre)
-        self.artist, self.album, self.song, self.date = super().get_line_from_db()
-        # save the correct answer
-        self.correct_answer = self.artist
-        self.answer_pool = [self.correct_answer]
-        # gather other options
-        while len(self.answer_pool) < 4:
-            self.artist2, self.album2, self.song2, self.date2 = super().get_line_from_db()
-            # check for duplicate data
-            if self.artist2 not in self.answer_pool:
-                if self.artist2 != self.correct_answer:
-                    self.answer_pool.append(self.artist2)
-        # shuffle answers
-        random.shuffle(self.answer_pool)
+   def __init__(self, genre):
+       super().__init__(genre)
+       self.artist, self.album, self.song, self.date = super().get_line_from_db()
+       # save the correct answer
+       self.correct_answer = self.artist
+       self.answer_pool = [self.correct_answer]
+       # gather other options
+       while len(self.answer_pool) < 4:
+           self.artist2, self.album2, self.song2, self.date2 = super().get_line_from_db()
+           # check for duplicate data
+           if self.artist2 not in self.answer_pool:
+               if self.artist2 != self.correct_answer:
+                  self.answer_pool.append(self.artist2)
+       # shuffle answers
+       random.shuffle(self.answer_pool)
 
-    def __str__(self):
+   def __str__(self):
         return f"\nWho is the artist of the song {self.song} on the album {self.album} from " \
                f"{self.date}?"
 
@@ -431,37 +430,37 @@ def connect_database():
 
 
 def generate_data(genre):
-    print("Gathering data...\n")
-    selected_artists = artists_by_genre[genre]
-    artist_ids = get_itunes_ids(selected_artists)
+   print("Gathering data...\n")
+   selected_artists = artists_by_genre[genre]
+   artist_ids = get_itunes_ids(selected_artists)
 
-    # send a request to itunes to return artist's songs
-    with connect_database() as con:
-        con.execute("CREATE TABLE IF NOT EXISTS songdata(artist TEXT, album TEXT, song TEXT, date INTEGER, genre TEXT)")
-        for artist in artist_ids:
-            str_artist = str(artist)
-            response = requests.get(f"https://itunes.apple.com/lookup?id={str_artist}&entity=song")
-            o = response.json()
-            del o["results"][0]
-            for result in o["results"]:
-                try:
-                    date = result["releaseDate"]
-                    # vars to save in the database
-                    artist = result["artistName"]
-                    album = result["collectionName"]
-                    song = result["trackName"]
-                    date = date[:4]
-                    # Filter out albums we don't want in db
-                    # Check if any unwanted pattern is in collection_name
-                    if not has_unwanted_pattern(album) and artist in selected_artists:
-                        con.execute(
-                            "INSERT INTO songdata VALUES(?, ?, ?, ?, ?)",
-                            (artist, album, song, date, genre),
-                        )
-                        con.commit()
-                except KeyError:
-                    # skips result if it does not include releaseDate
-                    continue
+   # send a request to itunes to return artist's songs
+   with connect_database() as con:
+       con.execute("CREATE TABLE IF NOT EXISTS songdata(id INTEGER PRIMARY KEY, artist TEXT, album TEXT, song TEXT, date INTEGER, genre TEXT)")
+       for artist in artist_ids:
+           str_artist = str(artist)
+           response = requests.get(f"https://itunes.apple.com/lookup?id={str_artist}&entity=song")
+           o = response.json()
+           del o["results"][0]
+           for result in o["results"]:
+               try:
+                  date = result["releaseDate"]
+                  # vars to save in the database
+                  artist = result["artistName"]
+                  album = result["collectionName"]
+                  song = result["trackName"]
+                  date = date[:4]
+                  # Filter out albums we don't want in db
+                  # Check if any unwanted pattern is in collection_name
+                  if not has_unwanted_pattern(album) and artist in selected_artists:
+                      con.execute(
+                          "INSERT INTO songdata(id, artist, album, song, date, genre) VALUES(?, ?, ?, ?, ?, ?)",
+                          (None, artist, album, song, date, genre),
+                      )
+                      con.commit()
+               except KeyError:
+                  # skips result if it does not include releaseDate
+                  continue
 
 
 def get_itunes_ids(artists):
